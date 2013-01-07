@@ -111,7 +111,7 @@ public class FsoPropertiesDialog
     /**
      * @hide
      */
-    CheckBox[] mChkUserPermission;
+    private CheckBox[] mChkUserPermission;
     private CheckBox[] mChkGroupPermission;
     private CheckBox[] mChkOthersPermission;
     private TextView mInfoMsgView;
@@ -297,8 +297,6 @@ public class FsoPropertiesDialog
         String loadingMsg = this.mContext.getString(R.string.loading_message);
         setSpinnerMsg(this.mContext, FsoPropertiesDialog.this.mSpnOwner, loadingMsg);
         setSpinnerMsg(this.mContext, FsoPropertiesDialog.this.mSpnGroup, loadingMsg);
-        this.mSpnOwner.setOnItemSelectedListener(this);
-        this.mSpnGroup.setOnItemSelectedListener(this);
         updatePermissions();
 
         // Load owners and groups AIDs in background
@@ -332,6 +330,13 @@ public class FsoPropertiesDialog
             this.mInfoMsgView.setVisibility(View.VISIBLE);
             this.mInfoMsgView.setOnClickListener(this);
         }
+
+        // Add the listener after set the value to avoid raising triggers
+        this.mSpnOwner.setOnItemSelectedListener(this);
+        this.mSpnGroup.setOnItemSelectedListener(this);
+        setPermissionCheckBoxesListener(this.mChkUserPermission);
+        setPermissionCheckBoxesListener(this.mChkGroupPermission);
+        setPermissionCheckBoxesListener(this.mChkOthersPermission);
 
         //Change the tab
         onClick(this.mInfoViewTab);
@@ -805,7 +810,7 @@ public class FsoPropertiesDialog
      * @param rootView The root view
      * @return UserPermission The user permission
      */
-    private CheckBox[] loadCheckBoxUserPermission (
+    private static CheckBox[] loadCheckBoxUserPermission (
             Context ctx, View rootView, UserPermission permission) {
         CheckBox[] chkPermissions = loadPermissionCheckBoxes(ctx, rootView, OWNER_TYPE);
         chkPermissions[0].setChecked(permission.isSetUID());
@@ -820,7 +825,7 @@ public class FsoPropertiesDialog
      * @param rootView The root view
      * @return UserPermission The user permission
      */
-    private CheckBox[] loadCheckBoxGroupPermission (
+    private static CheckBox[] loadCheckBoxGroupPermission (
             Context ctx, View rootView, GroupPermission permission) {
         CheckBox[] chkPermissions = loadPermissionCheckBoxes(ctx, rootView, GROUP_TYPE);
         chkPermissions[0].setChecked(permission.isSetGID());
@@ -835,7 +840,7 @@ public class FsoPropertiesDialog
      * @param rootView The root view
      * @return UserPermission The user permission
      */
-    private CheckBox[] loadCheckBoxOthersPermission (
+    private static CheckBox[] loadCheckBoxOthersPermission (
             Context ctx, View rootView, OthersPermission permission) {
         CheckBox[] chkPermissions = loadPermissionCheckBoxes(ctx, rootView, OTHERS_TYPE);
         chkPermissions[0].setChecked(permission.isStickybit());
@@ -878,30 +883,38 @@ public class FsoPropertiesDialog
      * @param type The type of permission [owner, group, others]
      * @return CheckBox[] The checkboxes associated
      */
-    private CheckBox[] loadPermissionCheckBoxes(Context ctx, View rootView, String type) {
+    private static CheckBox[] loadPermissionCheckBoxes(Context ctx, View rootView, String type) {
         Resources res = ctx.getResources();
         CheckBox[] chkPermissions = new CheckBox[4];
         chkPermissions[0] = (CheckBox)rootView.findViewById(
                 ResourcesHelper.getIdentifier(
                         res, "id",  //$NON-NLS-1$
-                        String.format("fso_permissions_%s_read", type))); //$NON-NLS-1$
+                        String.format("fso_permissions_%s_special", type))); //$NON-NLS-1$
         chkPermissions[1] = (CheckBox)rootView.findViewById(
                 ResourcesHelper.getIdentifier(
                         res, "id",  //$NON-NLS-1$
-                        String.format("fso_permissions_%s_write", type))); //$NON-NLS-1$
+                        String.format("fso_permissions_%s_read", type))); //$NON-NLS-1$
         chkPermissions[2] = (CheckBox)rootView.findViewById(
                 ResourcesHelper.getIdentifier(
                         res, "id",  //$NON-NLS-1$
-                        String.format("fso_permissions_%s_execute", type))); //$NON-NLS-1$
+                        String.format("fso_permissions_%s_write", type))); //$NON-NLS-1$
         chkPermissions[3] = (CheckBox)rootView.findViewById(
                 ResourcesHelper.getIdentifier(
                         res, "id",  //$NON-NLS-1$
-                        String.format("fso_permissions_%s_special", type))); //$NON-NLS-1$
+                        String.format("fso_permissions_%s_execute", type))); //$NON-NLS-1$
+        return chkPermissions;
+    }
+
+    /**
+     * Method that sets the listener for the permission checkboxes
+     *
+     * @param chkPermissions The checkboxes
+     */
+    private void setPermissionCheckBoxesListener(CheckBox[] chkPermissions) {
         int cc = chkPermissions.length;
         for (int i = 0; i < cc; i++) {
             chkPermissions[i].setOnCheckedChangeListener(this);
         }
-        return chkPermissions;
     }
 
     /**
@@ -1085,19 +1098,17 @@ public class FsoPropertiesDialog
      * @param spinner The spinner
      */
     private void adjustSpinnerSize(final Spinner spinner) {
+        final View v = this.mContentView.findViewById(R.id.fso_properties_dialog_tabhost);
         spinner.post(new Runnable() {
             @Override
             public void run() {
                 // Align with the last checkbox of the column
-                CheckBox cb = FsoPropertiesDialog.this.mChkUserPermission[3];
-                int cbW = cb.getMeasuredWidth();
-                int[] cbPos = new int[2];
-                cb.getLocationInWindow(cbPos);
+                int vW = v.getMeasuredWidth();
                 int[] cbSpn = new int[2];
                 spinner.getLocationInWindow(cbSpn);
 
                 // Set the width
-                spinner.getLayoutParams().width = (cbPos[0] - cbSpn[0]) + cbW;
+                spinner.getLayoutParams().width = vW - cbSpn[0];
             }
         });
     }
